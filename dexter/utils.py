@@ -11,7 +11,7 @@ def strcol(string, modification):
         'fail': '\033[91m',
         'endc': '\033[0m',
         'bold': '\033[1m',
-        'underline' : '\033[4m'
+        'underline': '\033[4m'
     }
 
     mod = modification_dict[modification]
@@ -56,42 +56,31 @@ def pretty_results(df, floatfmt=".3f", tablefmt='simple', title=None, subtitle=N
 
         print(indent(note, 2))
 
-        print('')
-
 
 def indent(txt, indents=1):
     assert txt is not None
     return '\n'.join(' ' * 4 * indents + ln for ln in txt.splitlines())
 
-
-def print_nested_dict(dict_obj, indent=0):
+def print_nested_dict(dict_obj, indent=0, exclude_keys=[]):
     "Pretty Print nested dictionary with given indent level"
-    # Iterate over all key-value pairs of dictionary
+
+    exclude_keys = [exclude_keys] if not isinstance(exclude_keys, list) else exclude_keys
+
     for key, value in dict_obj.items():
+
+        if key in exclude_keys or isinstance(value, DataFrame):
+            continue
+
         key = key.capitalize().replace('_', ' ')
-        if isinstance(value, DataFrame):
-            break
-        # If value is dict type, then print nested dict
+
         if isinstance(value, dict):
+
             print(' ' * indent, key)
-            print_nested_dict(value, indent + 4)
-            print(' ' * indent)
+            print_nested_dict(value, indent + 4, exclude_keys=exclude_keys)
+
         else:
+
             print(' ' * indent, key, ':', value)
-
-
-def prettify_single_comparison_results(res):
-
-    cols = ['A', 'B', 'T', 'U-val', 'p-unc', 'p-corr', 'cohen']
-
-    res = res.loc[:, res.columns.isin(cols)]
-
-    new_cols = ['A', 'B', 'T-statistic', 'U-statistic' 'p-value', 'p-value (adjusted)', 'effect size (d)']
-
-    for new, old in zip(cols, new_cols):
-        res.rename({old:new})
-
-    return res
 
 
 def _customise_res_table(res):

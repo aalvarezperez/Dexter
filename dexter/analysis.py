@@ -1,35 +1,55 @@
 import pingouin as pg
 import numpy as np
 import pandas as pd
+import random
 from utils import pretty_results, strcol, _customise_res_table
 
 class ExperimentAnalyser:
 
-    def __init__(self):
+    def __init__(self, data):
+        self._data = data
         self._log = {
             'transformations': {},
             'analyses': {}
         }
 
     def get_log(self, part=None):
-        assert part in ['transformations', 'analyses']
+        assert part in ['transformations', 'analyses', None]
         return self._log[part] if part is not None else self._log
 
+    def transform_metrics(self, metrics, func):
 
-    def _transform_metrics(self, data, metrics, transform_func):
+        df = self._data.df
 
-        if not callable(transform_func):
+        if not callable(func):
             raise ValueError('transform_func has to be a callable that takes a single argument.')
 
         for metric in metrics:
-            data.loc[:, metric] = transform_func(data[metric])
-            self._log['transformations'][f'{metric}'] = str(transform_func)
+            df.loc[:, metric] = func(df[metric])
+            self._log['transformations'][f'{metric}'] = str(func)
 
-    def _transform_metrics_log(self, offset):
-        self._transform_metrics(data, metrics, transform_func=lambda x: np.log(x + offset))
+        print(f'Info: the following metrics were transformed with {func.__name__}: {", ".join(x for x in metrics)}.')
 
-    def _calculate_lift(self, data, alpha, padjust, alternative, paired, metrics, parametric, func, rounds, method, seed):
+    def transform_metrics_log(self, metrics, offset=0):
+        assert offset >= 0
+        def log(x):
+            return np.log(x + offset)
+        self.transform_metrics(metrics, func=log)
 
+    def compare(self,
+                alpha=.05,
+                padjust='none',
+                alternative='two-sided',
+                paired=False,
+                metrics=None,
+                parametric=True,
+                func=None,
+                rounds=1000,
+                method='approx',
+                seed=random.randint(1, 10000)
+                ):
+
+        data = self._data.df
         metrics = [*data.success_metric, *data.learning_metrics] if metrics is None else metrics
         treatment = data.treatment
         n_groups = data.n_groups
@@ -54,7 +74,6 @@ class ExperimentAnalyser:
                 method=method,
                 rounds=rounds,
                 seed=seed
-
             )
 
         elif n_groups > 2:
@@ -105,7 +124,6 @@ class BaseAnalyser:
 
         if alpha < 0 or alpha > 1:
             raise AttributeError('alpha should be a proportion.')
-
 
         self.data = data
         self.metrics = metrics

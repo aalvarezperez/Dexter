@@ -48,7 +48,7 @@ def pretty_results(df, floatfmt=".3f", tablefmt='simple', title=None, subtitle=N
 
         print(indent(subtitle))
 
-    print(indent(tabulate(df, headers="keys", showindex=False, floatfmt=floatfmt, tablefmt=tablefmt), 2))
+    print(indent(tabulate(df, headers="keys", showindex=True, floatfmt=floatfmt, tablefmt=tablefmt), 2))
 
     print('')
 

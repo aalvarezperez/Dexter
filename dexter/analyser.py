@@ -19,19 +19,18 @@ class ExperimentAnalyser:
 
     def transform_metrics(self, metrics, func):
 
-        df = self._data.df
+        df = self._data
 
         if not callable(func):
             raise ValueError('transform_func has to be a callable that takes a single argument.')
 
         for metric in metrics:
-            df.loc[:, metric] = func(df[metric])
+            df.loc[metric] = func(df[metric])
             self._log['transformations'][f'{metric}'] = str(func)
 
         print(f'Info: the following metrics were transformed with {func.__name__}: {", ".join(x for x in metrics)}.')
 
     def transform_metrics_log(self, metrics, offset=0):
-        assert offset >= 0
         def log(x):
             return np.log(x + offset)
         self.transform_metrics(metrics, func=log)
@@ -49,19 +48,18 @@ class ExperimentAnalyser:
                 seed=random.randint(1, 10000)
                 ):
 
-        data = self._data.df
+        data = self._data
         metrics = [*data.success_metric, *data.learning_metrics] if metrics is None else metrics
         treatment = data.treatment
         n_groups = data.n_groups
         groups = data.groups
-        df = data.df
 
         if parametric == 'permute':
             if n_groups > 2:
                 raise Exception('Permutations are not enabled for experiment with more than two variants.')
 
             calculator = PermutationComparison(
-                data=df,
+                data=data,
                 metrics=metrics,
                 treatment=treatment,
                 alpha=alpha,
@@ -79,7 +77,7 @@ class ExperimentAnalyser:
         elif n_groups > 2:
 
             calculator = MultipleComparison(
-                data=df,
+                data=data,
                 metrics=metrics,
                 treatment=treatment,
                 alpha=alpha,
@@ -93,7 +91,7 @@ class ExperimentAnalyser:
         elif n_groups == 2:
 
             calculator = SingleComparison(
-                data=df,
+                data=data,
                 metrics=metrics,
                 treatment=treatment,
                 alpha=alpha,
@@ -144,7 +142,7 @@ class BaseAnalyser:
 
         for metric in self.metrics:
             check_homoskedasticity = pg.homoscedasticity(
-                data=self.data,
+                data=self.data.data,
                 dv=metric,
                 group=self.treatment,
                 method='levene'
@@ -162,7 +160,7 @@ class SingleComparison(BaseAnalyser):
     def _run_ttest(self, metric, equal_var):
 
         res = pg.pairwise_ttests(
-            data=self.data,
+            data=self.data.data,
             dv=metric,
             between=self.treatment,
             padjust=self.padjust,
@@ -173,14 +171,14 @@ class SingleComparison(BaseAnalyser):
 
         res = _customise_res_table(res)
 
-        note = f'Info: Welch\'s test is applied automatically if metric variance across the experiment variants differs.'
+        note = f'Info: Welch\'s tests is applied automatically if metric variance across the experiment variants differs.'
 
-        pretty_results(res, title=metric, subtitle='T-test:', note=note)
+        pretty_results(res, title=metric, subtitle='T-tests:', note=note)
 
         if metric not in self.results:
             self.results[metric] = {}
 
-        self.results[metric]['t-test'] = res.to_dict()
+        self.results[metric]['t-tests'] = res.to_dict()
 
 
     def run(self):
@@ -213,7 +211,7 @@ class MultipleComparison(SingleComparison):
         anova = method[self.parametric][equal_var]
 
         res = anova(
-            data=self.data,
+            data=self.data.data,
             dv=metric,
             between=self.treatment,
             detailed=True,
@@ -234,7 +232,7 @@ class MultipleComparison(SingleComparison):
 
         elif res.loc[0, 'p-value'] > self.alpha:
             note = f'Info: (none of) the treatment(s) has any effect on {metric}. ' \
-                         'Relying on the post-hoc test may lead to false positive findings (type-I error)'
+                         'Relying on the post-hoc tests may lead to false positive findings (type-I error)'
 
             note = strcol(note, 'fail')
         else:
@@ -255,7 +253,7 @@ class MultipleComparison(SingleComparison):
         posthoc = method[equal_var]
 
         res = posthoc(
-            data=self.data,
+            data=self.data.data,
             dv=metric,
             between=self.treatment,
             effsize='cohen'  # TODO effect size should be set according to metric type: continuous/binary
@@ -268,9 +266,9 @@ class MultipleComparison(SingleComparison):
 
         self.results[metric]['post_hoc'] = res.to_dict()
 
-        test = 'Tukey\'s test' if equal_var else 'Games-Howell'
+        test = 'Tukey\'s tests' if equal_var else 'Games-Howell'
 
-        note = 'p-values are adjusted for multiple analyses (see Tukey\'s and Games-Howell test)'
+        note = 'p-values are adjusted for multiple analyses (see Tukey\'s and Games-Howell tests)'
 
         pretty_results(res, title=None, subtitle=f'Post-hoc ({test}):', note=note)
 
@@ -340,8 +338,6 @@ class PermutationComparison(BaseAnalyser):
 
         total = past_observed = 0
 
-        permutations = []
-
         for i in range(self.rounds):
 
             rng.shuffle(null_dist)
@@ -368,9 +364,9 @@ class PermutationComparison(BaseAnalyser):
         if metric not in self.results:
             self.results[metric] = {}
 
-        self.results[metric]['permutation-test'] = results
+        self.results[metric]['permutation-tests'] = results
 
-        pretty_results(results, title=metric, subtitle='Permutation test')
+        pretty_results(results, title=metric, subtitle='Permutation tests')
 
     def run(self):
 

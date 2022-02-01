@@ -29,7 +29,7 @@ class ExperimentChecker:
                     'observed prop': [],
                     'expected prop': [],
                     'differences': [],
-                    'test results': {'test': 'chi-square GOF', 'statistic': None, 'p-value': None}
+                    'tests results': {'tests': 'chi-square GOF', 'statistic': None, 'p-value': None}
                 }
             },
             'crossover': {
@@ -68,17 +68,17 @@ class ExperimentChecker:
 
     def check_groups_balance(self):
 
-        df = self._data.df
-        treatment = self._data.treatment
-        expected_proportions = self._data.group_proportions
+        data = self._data
+        treatment = data.treatment
+        expected_proportions = data.expected_proportions
 
-        if len(expected_proportions) != df[treatment].nunique():
+        if len(expected_proportions) != data[treatment].nunique():
             raise ValueError('Provide a proportion for each group available in the treatment column.'
                              'The sum of the input should be 1.')
 
-        n_treatment = df[treatment].value_counts().sort_index()
+        n_treatment = data[treatment].value_counts().sort_index()
 
-        n_total = df.shape[0]
+        n_total = data.shape[0]
 
         observed_prop = round(n_treatment / n_total, 3).tolist()
 
@@ -92,18 +92,18 @@ class ExperimentChecker:
         self._log['group_balance']['diagnostics']['observed prop'] = observed_prop
         self._log['group_balance']['diagnostics']['expected prop'] = expected_proportions
         self._log['group_balance']['diagnostics']['differences'] = differences
-        self._log['group_balance']['diagnostics']['test results']['statistic'] = test_res[0]
-        self._log['group_balance']['diagnostics']['test results']['p-value'] = test_res[1]
+        self._log['group_balance']['diagnostics']['tests results']['statistic'] = test_res[0]
+        self._log['group_balance']['diagnostics']['tests results']['p-value'] = test_res[1]
 
         print_status_message(self._log.get('group_balance'))
 
     def check_crossover(self):
 
-        df = self._data.df
-        experiment_unit = self._data.experiment_unit
-        treatment = self._data.treatment
+        data = self._data
+        experiment_unit = data.experiment_unit
+        treatment = data.treatment
 
-        user_treatment_df = df.drop_duplicates(subset=[experiment_unit, treatment])
+        user_treatment_df = data.drop_duplicates(subset=[experiment_unit, treatment])
         user_freq_series = user_treatment_df[experiment_unit].value_counts()
         crossed_over = user_freq_series > 1
 
@@ -122,9 +122,9 @@ class ExperimentChecker:
 
         func = [func] if not isinstance(func, list) else func
 
-        df = self._data.df
+        data = self._data
 
-        aggr_df = df[metrics].groupby(is_outlier).agg(func)
+        aggr_df = data[metrics].groupby(is_outlier).agg(func)
 
         aggr_df.rename(index={True: 'Outliers', False: 'Regulars'}, inplace=True)
 
@@ -146,13 +146,13 @@ class ExperimentChecker:
         aggr_df.index.name = ''
 
         self._log['outliers']['status']['checked'] = True
-        self._log['outliers']['diagnostics']['stats'] = aggr_df
+        self._log['outliers']['diagnostics']['stats'] = aggr_df.to_dict()
         self._crossover_mask = is_outlier
 
         print_status_message(self._log.get('outliers'), exclude_keys=['stats'])
 
-        # because print_status_message will not print a dataframe. As aggr_df is.
         headers = [aggr_df.index.name] + list(map('\n '.join, aggr_df.columns.tolist()))
+
         print(
             'Stats:\n',
             indent(tabulate(aggr_df, headers=headers, showindex=True, floatfmt='.3f', tablefmt='simple'), 1),
@@ -190,7 +190,7 @@ class ExperimentChecker:
 
         print(f'{affected} units were removed from the working dataset.')
 
-        self._data.df = self._data.df[~self._crossover_mask]
+        self._data.data = self._data.loc[~self._crossover_mask]
 
         self._log['crossover']['status']['handled'] = True
 
@@ -217,7 +217,7 @@ class ExperimentChecker:
         }
 
         outlier_fun = method_dict[method]
-        self._data.df = outlier_fun(dataframe=self._data.df, outlier_mask=is_outlier, metrics=metrics)
+        self._data.data = outlier_fun(dataframe=self._data, outlier_mask=is_outlier, metrics=metrics)
 
         total_affected = is_outlier.sum()
         percent_affected = is_outlier.mean()

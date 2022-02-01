@@ -17,5 +17,5 @@ setup(
         'pingouin=0.5.0',
         'matplotlib=3.5'
     ],
-    packages=find_packages(exclude=('test*'))
+    packages=find_packages(exclude=('tests*'))
 )

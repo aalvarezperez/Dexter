@@ -14,7 +14,7 @@ exp_df = ExperimentDataFrame(
     experiment_unit='userid',
     treatment='treatment',
     expected_proportions=[.5, .5]
-)
+    )
 
 exp = Experiment(
     experiment_name='great_exp',
@@ -22,8 +22,7 @@ exp = Experiment(
     end='2021-01-14',
     expected_delta=.3,
     roll_out_percent=.1
-)
-
+    )
 
 ################################
 ### read out experiment ########
@@ -45,9 +44,7 @@ exp.assumptions.check_outliers(
     metrics=['vips', 'leads'],
     is_outlier=exp.data.leads > 1,
     func=[np.mean, np.median]
-)
-
-exp.print_assumption_checks()  # as a summary
+    )
 
 ################################
 ###  fix assumptions  ##########
@@ -57,16 +54,13 @@ exp.assumptions.handle_crossover()
 
 exp.assumptions.handle_outliers(method='trim', is_outlier=exp.data.leads > 1, metrics=['leads', 'vips'])
 
-
 ################################
 ###  analyze experiment  #######
 ################################
 
-exp.analyses.transform_metrics_log(['leads', 'vips'], offset=0)
+exp.analyser.transform_metrics_log(['leads', 'vips'], offset=0)
 
-
-exp.analyses.compare(parametric=False, func=None)
+exp.analyser.compare(parametric=False, func=None)
 
 exp.visualiser.plot_conditional(y='revenue', x='leads', group='treatment')
-
 plt.show()

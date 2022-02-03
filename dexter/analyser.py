@@ -2,7 +2,7 @@ import pingouin as pg
 import numpy as np
 import pandas as pd
 import random
-from utils import pretty_results, strcol, _customise_res_table
+from dexter.utils import pretty_results, strcol, _customise_res_table
 
 class ExperimentAnalyser:
 
@@ -19,14 +19,12 @@ class ExperimentAnalyser:
 
     def transform_metrics(self, metrics, func):
 
-        df = self._data
-
         if not callable(func):
             raise ValueError('transform_func has to be a callable that takes a single argument.')
 
         for metric in metrics:
-            df.loc[metric] = func(df[metric])
-            self._log['transformations'][f'{metric}'] = str(func)
+            self._data.data[metric] = func(self._data[metric])
+            self._log['transformations'][metric] = str(func)
 
         print(f'Info: the following metrics were transformed with {func.__name__}: {", ".join(x for x in metrics)}.')
 

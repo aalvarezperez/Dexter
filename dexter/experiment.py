@@ -1,9 +1,9 @@
 from pandas import qcut
-from assumptions import ExperimentChecker
-from analyser import ExperimentAnalyser, BaseAnalyser
-from visualisations import ResultsVisualiser
+from dexter.assumptions import ExperimentChecker
+from dexter.analyser import ExperimentAnalyser, BaseAnalyser
+from dexter.visualisations import ResultsVisualiser
 from numpy import sort
-from utils import *
+from dexter.utils import *
 
 
 class ExperimentDataFrame:

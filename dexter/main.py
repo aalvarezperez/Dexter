@@ -2,7 +2,6 @@ from experiment import Experiment, ExperimentDataFrame
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import print_nested_dict
 
 df = pd.read_csv('/Users/aalvarezperez/Documents/eBay/Horizon/projects/Dexter/dummy_df.csv')
 
@@ -64,3 +63,4 @@ exp.analyser.compare(parametric=False, func=None)
 
 exp.visualiser.plot_conditional(y='revenue', x='leads', group='treatment')
 plt.show()
+

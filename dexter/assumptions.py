@@ -1,7 +1,7 @@
 from typing import Any
-from stats_func import trim_outliers, winsorize_outliers, check_multiple_proportion
+from dexter.stats_func import trim_outliers, winsorize_outliers, check_multiple_proportion
 from numpy import round, mean, sum, ndarray
-from utils import indent, print_nested_dict
+from dexter.utils import indent, print_nested_dict
 from tabulate import tabulate
 from pandas import DataFrame, concat
 from itertools import product
@@ -177,6 +177,7 @@ class ExperimentChecker:
         if self._crossover_mask is None:
             print(indent('Nothing to take care of. Have you ran the check for this assumption first?\n'))
             return
+
         if sum(self._crossover_mask == 0):
             print(indent('There are no cross-over cases to handle. You are good to go.\n'))
             return

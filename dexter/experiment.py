@@ -1,62 +1,58 @@
-from pandas import qcut
-from dexter.assumptions import ExperimentChecker
-from dexter.analyser import ExperimentAnalyser, BaseAnalyser
-from dexter.visualisations import ResultsVisualiser
+import pandas
 from numpy import sort
+
+from dexter.analyser import ExperimentAnalyser
+from dexter.assumptions import ExperimentChecker
 from dexter.utils import *
+from dexter.validation import _TestMetric, _Metric, _ColumnIdentifier, _DataFrame, \
+    _ExpectedProportions, _post_validate_experiment_dataframe
+from dexter.visualisations import ResultsVisualiser
 
 
 class ExperimentDataFrame:
+    forbidden = ['treatment', 'groups', 'n_groups', 'success_metric', 'learning_metrics',
+                 'health_metric', 'experiment_unit', 'expected_proportions', 'dataframe']
+
+    success_metric = _TestMetric(forbidden)
+    health_metrics = _TestMetric(forbidden)
+    learning_metrics = _Metric(forbidden)
+    experiment_unit = _ColumnIdentifier(forbidden)
+    treatment = _ColumnIdentifier(forbidden)
+    expected_proportions = _ExpectedProportions()
+    data = _DataFrame()
+
     def __init__(
             self,
-            success_metric,
-            health_metrics,
-            learning_metrics,
-            experiment_unit,
-            treatment,
-            expected_proportions,
-            dataframe=None
+            success_metric: list[str],
+            health_metric: list[str],
+            learning_metrics: list[str],
+            experiment_unit: str,
+            treatment: str,
+            expected_proportions: list[float],
+            dataframe: pandas.DataFrame
             ):
-
-        success_metric = [success_metric] if type(success_metric) is not list else success_metric
-        health_metrics = [health_metrics] if type(health_metrics) is not list else success_metric
-        learning_metrics = [learning_metrics] if type(learning_metrics) is not list else success_metric
-
-        self._df = dataframe
+        self.data = dataframe
         self.success_metric = success_metric
-        self.health_metrics = health_metrics
+        self.health_metrics = health_metric
         self.learning_metrics = learning_metrics
         self.experiment_unit = experiment_unit
         self.treatment = treatment
         self.expected_proportions = expected_proportions
-        self.groups = sort(dataframe[treatment].unique())
-        self.n_groups = dataframe[treatment].nunique()
+        self._post_validate()
 
-        if self._df.shape[0] > 2*10**6:
-            print(strcol('Info: it is recommended to delete the original DataFrame after initialising it as '
-                         'an ExperimentDataFrame, to save working memory', 'warning'))
-
-    @property
-    def data(self):
-        return self._df
-
-    @data.setter
-    def data(self, df):
-        if not isinstance(df, DataFrame):
-            raise AttributeError('You can only assign a pandas DataFrame to this ExperimentDataFrame.data.')
-        self._df = df
+    def _post_validate(self):
+        _post_validate_experiment_dataframe(self)
 
     def __getattr__(self, attr):
         if attr in self.__dict__:
             return getattr(self, attr)
-        return getattr(self._df, attr)
+        return getattr(self.data, attr)
 
     def __getitem__(self, item):
-        return self._df[item]
+        return self.data[item]
 
     def __setitem__(self, item, data):
-        self._df[item] = data
-
+        self.data[item] = data
 
 
 class Experiment:
@@ -66,14 +62,14 @@ class Experiment:
     
     1. Reading out
     2. Checking assumptions
-    3. Aliviating possible violations
+    3. Alleviating possible violations
     4. Calculating lift
     5. Visualising results
     """
-    
+
     def __init__(self, experiment_name, start, end, expected_delta, roll_out_percent, data=None):
         """
-        This method creates a new experiment obejct.
+        This method creates a new experiment object.
         """
 
         self.experiment_name = experiment_name
@@ -94,6 +90,18 @@ class Experiment:
             print(strcol('Info: you initialised the experiment, but there is no data to analyse yet.'
                          ' See the .read_out() method.', 'warning')
                   )
+
+    @property
+    def groups(self):
+        return sort(self.data[self.data.treatment].unique())
+
+    @property
+    def n_groups(self):
+        return len(self.groups)
+
+    @property
+    def sample_size(self):
+        return self.data.shape[0]
 
     @property
     def data(self):
@@ -128,7 +136,7 @@ class Experiment:
 
         if by is not None:
             if high_cardinality:
-                df['stratum'] = qcut(df[by], q, precision=3)
+                df['stratum'] = pandas.qcut(df[by], q, precision=3)
                 df.drop([by], inplace=True, axis=1)
 
             df.rename({by: 'stratum'}, axis=1, inplace=True)
@@ -137,7 +145,7 @@ class Experiment:
 
             for stratum in strata:
                 title = f'{by}: {stratum}'
-                frame = '\n' + '='*(len(title)+1) + '\n'
+                frame = '\n' + '=' * (len(title) + 1) + '\n'
                 print(
                     frame,
                     title,
@@ -147,5 +155,3 @@ class Experiment:
                 pretty_results(self._data.loc[mask].describe())
         else:
             pretty_results(self._data.describe())
-
-

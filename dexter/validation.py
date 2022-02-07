@@ -1,6 +1,7 @@
 import warnings
 import pandas
 from numpy import sort
+
 from dexter.utils import strcol
 from abc import ABC, abstractmethod
 
@@ -24,10 +25,13 @@ class _BaseValidator(ABC):
         pass
 
 
-class _DataFrame(_BaseValidator):
-    def __init__(self, *options):
-        self.options = set(options)
+class _String(_BaseValidator):
+    def validate(self, value):
+        if not isinstance(value, str):
+            raise ValueError('Input should be a string.')
 
+
+class _DataFrame(_BaseValidator):
     def validate(self, value):
         if not isinstance(value, pandas.DataFrame):
             raise ValueError(f'dataframe should be of type Pandas DataFrame, '
@@ -36,13 +40,19 @@ class _DataFrame(_BaseValidator):
             raise ValueError('data is empty')
 
 
-class _ColumnIdentifier(_BaseValidator):
+class _ExperimentDataFrame(_BaseValidator):
+    def validate(self, value):
+        if value.__class__.__name__ != 'ExperimentDataFrame' and value is not None:
+            raise ValueError(f'dataframe should be of type Dexter ExperimentDataFrame, '
+                             f'but got {value.__class__.__name__} instead.')
+
+
+class _ColumnIdentifier(_String):
     def __init__(self, forbidden):
         self.forbidden = forbidden
 
     def validate(self, value):
-        if not isinstance(value, str):
-            raise ValueError('Input should be a string.')
+        _String.validate(self, value)
         if value in self.forbidden:
             raise ValueError('The column identifier cannot be the same as any of the reserved attribute names for the '
                              'ExperimentDataFrame class. Change the column name in the original pandas DataFrame.')
@@ -70,6 +80,19 @@ class _ExpectedProportions(_BaseValidator):
         if sum(value) != 1:
             raise ValueError('The provided proportions should sum up to 1, exactly, '
                              'and a proportion is required for each group.')
+
+
+class _Number(_BaseValidator):
+    def validate(self, value):
+        if not isinstance(value, (float, int)):
+            raise ValueError('Input should be either a float or an int.')
+
+
+class _Proportion(_Number):
+    def validate(self, value):
+        _Number.validate(self, value)
+        if value < 0 or value > 1:
+            raise ValueError('Input should be a proportion: a number between, and including, 0 and 1.')
 
 
 def _post_validate_experiment_dataframe(obj):

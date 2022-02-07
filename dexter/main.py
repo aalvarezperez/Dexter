@@ -17,22 +17,21 @@ exp_df = ExperimentDataFrame(
     expected_proportions=[.5, .5]
     )
 
-print(exp_df.data)
+exp = Experiment(
+    experiment_name='great_exp',
+    start='2021-01-01',
+    end='2021-01-14',
+    expected_delta=.3,
+    roll_out_percent=.1
+    )
 
-# exp = Experiment(
-#     experiment_name='great_exp',
-#     start='2021-01-01',
-#     end='2021-01-14',
-#     expected_delta=.3,
-#     roll_out_percent=.1
-#     )
-#
+
 # ################################
 # ### read out experiment ########
 # ################################
 #
-# exp.read_out(exp_df)
-#
+exp.read_out(exp_df)
+
 # exp.describe_data(by='revenue')
 #
 # ################################

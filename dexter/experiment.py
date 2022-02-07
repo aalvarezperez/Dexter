@@ -5,7 +5,7 @@ from dexter.analyser import ExperimentAnalyser
 from dexter.assumptions import ExperimentChecker
 from dexter.utils import *
 from dexter.validation import _TestMetric, _Metric, _ColumnIdentifier, _DataFrame, \
-    _ExpectedProportions, _post_validate_experiment_dataframe
+    _ExpectedProportions, _post_validate_experiment_dataframe, _String, _Proportion, _Number, _ExperimentDataFrame
 from dexter.visualisations import ResultsVisualiser
 
 
@@ -66,14 +66,29 @@ class Experiment:
     4. Calculating lift
     5. Visualising results
     """
+    experiment_name = _String()
+    start = _String()
+    end = _String()
+    roll_out_percent = _Proportion()
+    expected_delta = _Number()
+    _data = _ExperimentDataFrame()
 
-    def __init__(self, experiment_name, start, end, expected_delta, roll_out_percent, data=None):
+    def __init__(
+            self,
+            experiment_name: str,
+            start: str,
+            end: str,
+            expected_delta: float,
+            roll_out_percent: float,
+            data: ExperimentDataFrame = None
+            ):
         """
         This method creates a new experiment object.
         """
 
         self.experiment_name = experiment_name
-        self.start, self.end = start, end
+        self.start = start
+        self.end = end
         self.expected_delta = expected_delta
         self.roll_out_percent = roll_out_percent
 
@@ -92,8 +107,13 @@ class Experiment:
                   )
 
     @property
+    def data(self):
+        return self._data
+
+    @property
     def groups(self):
-        return sort(self.data[self.data.treatment].unique())
+        data = self.data
+        return sort(data[data.treatment].unique())
 
     @property
     def n_groups(self):
@@ -103,32 +123,18 @@ class Experiment:
     def sample_size(self):
         return self.data.shape[0]
 
-    @property
-    def data(self):
-        return self._data
+    def read_out(self, data: ExperimentDataFrame):
+        self._data = data
+        self.assumptions = ExperimentChecker(data=self._data)
+        self.analyser = ExperimentAnalyser(data=self._data)
+        self.visualiser = ResultsVisualiser(source={
+            'assumptions': self.assumptions.get_log(),
+            'analyses': self.analyser.get_log(),
+            'data': self._data
+            })
+        print(strcol('Info: experiment dataframe has been read.', 'okgreen'))
 
-    @data.setter
-    def data(self, new_data):
-        if isinstance(new_data, ExperimentDataFrame):
-            self._data = new_data
-        else:
-            ValueError('Input must be of ExperimentDataFrame type.')
-
-    def read_out(self, data):
-        if isinstance(data, ExperimentDataFrame):
-            self._data = data
-            self.assumptions = ExperimentChecker(data=self._data)
-            self.analyser = ExperimentAnalyser(data=self._data)
-            self.visualiser = ResultsVisualiser(source={
-                'assumptions': self.assumptions.get_log(),
-                'analyses': self.analyser.get_log(),
-                'data': self._data
-                })
-            print(strcol('Info: experiment dataframe has been read.', 'okgreen'))
-        else:
-            raise ValueError('Input must be of type ExperimentDataFrame.')
-
-    def describe_data(self, by=None, q=3):
+    def describe_data(self, by: str = None, q: int = 3):
 
         df = self._data.data.copy()
 

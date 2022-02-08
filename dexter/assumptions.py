@@ -1,14 +1,16 @@
 from typing import Any
 from dexter.stats_func import trim_outliers, winsorize_outliers, check_multiple_proportion
-from numpy import round, mean, sum, ndarray
+from numpy import round, mean, sum, ndarray, sort
 from dexter.utils import indent, print_nested_dict
 from tabulate import tabulate
 from pandas import DataFrame, concat
 from itertools import product
 
+
 def print_status_message(status_dict, exclude_keys=[]):
     print_nested_dict(status_dict, indent=0, exclude_keys=exclude_keys)
     print('')
+
 
 class ExperimentChecker:
     def __init__(self, data):
@@ -23,15 +25,15 @@ class ExperimentChecker:
                     'checked': False,
                     'passed': None,
                     'handled': False
-                },
+                    },
                 'diagnostics': {
                     'groups': [],
                     'observed prop': [],
                     'expected prop': [],
                     'differences': [],
                     'tests results': {'tests': 'chi-square GOF', 'statistic': None, 'p-value': None}
-                }
-            },
+                    }
+                },
             'crossover': {
                 'assumption': 'experiment units are exposed to a single variant only (no cross-over)',
                 'info': 'if an experiment unit is exposed to multiple variants, '
@@ -40,12 +42,12 @@ class ExperimentChecker:
                     'checked': False,
                     'passed': None,
                     'handled': False
-                },
+                    },
                 'diagnostics': {
                     'cross-over cases': None,
                     'percent of total': None
-                }
-            },
+                    }
+                },
             'outliers': {
                 'assumption': 'depends on the definition of outliers that is used.',
                 'info': 'careful handling of outliers will likely result in increased statistical power.',
@@ -53,15 +55,15 @@ class ExperimentChecker:
                     'checked': False,
                     'passed': None,
                     'handled': False
-                 },
+                    },
                 'diagnostics': {
                     'method': None,
                     'affected metrics': [],
                     'number of affected units': None,
                     'stats': None
+                    }
                 }
             }
-        }
 
     def get_log(self):
         return self._log
@@ -70,6 +72,7 @@ class ExperimentChecker:
 
         data = self._data
         treatment = data.treatment
+        groups = sort(data[data.treatment].unique())
         expected_proportions = data.expected_proportions
 
         if len(expected_proportions) != data[treatment].nunique():
@@ -77,18 +80,14 @@ class ExperimentChecker:
                              'The sum of the input should be 1.')
 
         n_treatment = data[treatment].value_counts().sort_index()
-
         n_total = data.shape[0]
-
         observed_prop = round(n_treatment / n_total, 3).tolist()
-
         test_res = check_multiple_proportion(n_total, n_treatment, expected_proportions)
-
         differences: list[ndarray | Any] = [round(e - o, 3) for e, o in zip(expected_proportions, observed_prop)]
 
         self._log['group_balance']['status']['checked'] = True
         self._log['group_balance']['status']['passed'] = test_res[1] > .05
-        self._log['group_balance']['diagnostics']['groups'] = self._data.groups
+        self._log['group_balance']['diagnostics']['groups'] = groups
         self._log['group_balance']['diagnostics']['observed prop'] = observed_prop
         self._log['group_balance']['diagnostics']['expected prop'] = expected_proportions
         self._log['group_balance']['diagnostics']['differences'] = differences
@@ -139,7 +138,7 @@ class ExperimentChecker:
             [deltas],
             index=['(delta)'],
             columns=[x for x in cols]
-        )
+            )
 
         aggr_df = concat([aggr_df, delta_df])
 
@@ -157,9 +156,10 @@ class ExperimentChecker:
             'Stats:\n',
             indent(tabulate(aggr_df, headers=headers, showindex=True, floatfmt='.3f', tablefmt='simple'), 1),
             '\n'
-        )
+            )
 
-        print('The check_outliers() method will not affect the diagnostics for this assumption. Only handling it will.')
+        print('The check_outliers() method will not affect the diagnostics for this assumption. '
+              'Only handling it will.' + '\n')
 
     def get_status(self, detailed=False):
         if detailed:
@@ -175,11 +175,11 @@ class ExperimentChecker:
         print('• Handling cross-overs...')
 
         if self._crossover_mask is None:
-            print(indent('Nothing to take care of. Have you ran the check for this assumption first?\n'))
+            print(indent('Nothing to take care of. Have you ran the check for this assumption first?'+'\n'))
             return
 
         if sum(self._crossover_mask == 0):
-            print(indent('There are no cross-over cases to handle. You are good to go.\n'))
+            print(indent('There are no cross-over cases to handle. You are good to go.'+'\n'))
             return
 
         if mean(self._crossover_mask) > threshold:
@@ -215,7 +215,7 @@ class ExperimentChecker:
         method_dict = {
             'trim': trim_outliers,
             'winsorize': winsorize_outliers
-        }
+            }
 
         outlier_fun = method_dict[method]
         self._data.data = outlier_fun(dataframe=self._data, outlier_mask=is_outlier, metrics=metrics)
@@ -230,7 +230,3 @@ class ExperimentChecker:
 
         print(indent('{} experiment units were affected: {}% of the total sample.\n'
                      .format(total_affected, round(percent_affected * 100, 3))))
-
-
-
-

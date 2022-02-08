@@ -4,22 +4,21 @@ from numpy import sort
 from dexter.analyser import ExperimentAnalyser
 from dexter.assumptions import ExperimentChecker
 from dexter.utils import *
-from dexter.validation import _TestMetric, _Metric, _ColumnIdentifier, _DataFrame, \
-    _ExpectedProportions, _post_validate_experiment_dataframe, _String, _Proportion, _Number, _ExperimentDataFrame
-from dexter.visualisations import ResultsVisualiser
+import dexter.validation as validation
+from dexter.visualisations import ExperimentVisualiser
 
 
 class ExperimentDataFrame:
-    forbidden = ['treatment', 'groups', 'n_groups', 'success_metric', 'learning_metrics',
-                 'health_metric', 'experiment_unit', 'expected_proportions', 'dataframe']
+    _forbidden = ['treatment', 'groups', 'n_groups', 'success_metric', 'learning_metrics',
+                  'health_metric', 'experiment_unit', 'expected_proportions', 'dataframe']
 
-    success_metric = _TestMetric(forbidden)
-    health_metrics = _TestMetric(forbidden)
-    learning_metrics = _Metric(forbidden)
-    experiment_unit = _ColumnIdentifier(forbidden)
-    treatment = _ColumnIdentifier(forbidden)
-    expected_proportions = _ExpectedProportions()
-    data = _DataFrame()
+    success_metric = validation._TestMetric(_forbidden)
+    health_metrics = validation._TestMetric(_forbidden)
+    learning_metrics = validation._Metric(_forbidden)
+    experiment_unit = validation._ColumnIdentifier(_forbidden)
+    treatment = validation._ColumnIdentifier(_forbidden)
+    expected_proportions = validation._ExpectedProportions()
+    data = validation._DataFrame()
 
     def __init__(
             self,
@@ -41,7 +40,7 @@ class ExperimentDataFrame:
         self._post_validate()
 
     def _post_validate(self):
-        _post_validate_experiment_dataframe(self)
+        validation._post_validate_experiment_dataframe(self)
 
     def __getattr__(self, attr):
         if attr in self.__dict__:
@@ -66,12 +65,12 @@ class Experiment:
     4. Calculating lift
     5. Visualising results
     """
-    experiment_name = _String()
-    start = _String()
-    end = _String()
-    roll_out_percent = _Proportion()
-    expected_delta = _Number()
-    _data = _ExperimentDataFrame()
+    experiment_name = validation._String()
+    start = validation._String()
+    end = validation._String()
+    roll_out_percent = validation._Proportion()
+    expected_delta = validation._Number()
+    _data = validation._ExperimentDataFrame()
 
     def __init__(
             self,
@@ -80,7 +79,7 @@ class Experiment:
             end: str,
             expected_delta: float,
             roll_out_percent: float,
-            data: ExperimentDataFrame = None
+            experiment_df: ExperimentDataFrame = None
             ):
         """
         This method creates a new experiment object.
@@ -91,18 +90,14 @@ class Experiment:
         self.end = end
         self.expected_delta = expected_delta
         self.roll_out_percent = roll_out_percent
+        self._data = experiment_df
 
-        self._data = data
-        self.assumptions = ExperimentChecker(data=self._data)
-        self.analyser = ExperimentAnalyser(data=self._data)
-        self.visualiser = ResultsVisualiser(source={
-            'assumptions': self.assumptions.get_log(),
-            'analyses': self.analyser.get_log(),
-            'data': self._data
-            })
-
-        if self._data is None:
-            print(strcol('Info: you initialised the experiment, but there is no data to analyse yet.'
+        if self._data is not None:
+            self.assumptions = ExperimentChecker(data=self._data)
+            self.analyser = ExperimentAnalyser(data=self._data)
+            self.visualiser = ExperimentVisualiser(self)
+        else:
+            print(strcol('Info: you initialised the experiment, but there is no experiment_df to analyse yet.'
                          ' See the .read_out() method.', 'warning')
                   )
 
@@ -112,7 +107,7 @@ class Experiment:
 
     @property
     def groups(self):
-        data = self.data
+        data = self._data
         return sort(data[data.treatment].unique())
 
     @property
@@ -127,11 +122,7 @@ class Experiment:
         self._data = data
         self.assumptions = ExperimentChecker(data=self._data)
         self.analyser = ExperimentAnalyser(data=self._data)
-        self.visualiser = ResultsVisualiser(source={
-            'assumptions': self.assumptions.get_log(),
-            'analyses': self.analyser.get_log(),
-            'data': self._data
-            })
+        self.visualiser = ExperimentVisualiser(self)
         print(strcol('Info: experiment dataframe has been read.', 'okgreen'))
 
     def describe_data(self, by: str = None, q: int = 3):

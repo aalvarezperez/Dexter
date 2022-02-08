@@ -2,16 +2,19 @@ import pingouin as pg
 import numpy as np
 import pandas as pd
 import random
+
+from numpy import sort
+
 from dexter.utils import pretty_results, strcol, _customise_res_table
 
-class ExperimentAnalyser:
 
+class ExperimentAnalyser:
     def __init__(self, data):
         self._data = data
         self._log = {
             'transformations': {},
             'analyses': {}
-        }
+            }
 
     def get_log(self, part=None):
         assert part in ['transformations', 'analyses', None]
@@ -31,6 +34,7 @@ class ExperimentAnalyser:
     def transform_metrics_log(self, metrics, offset=0):
         def log(x):
             return np.log(x + offset)
+
         self.transform_metrics(metrics, func=log)
 
     def compare(self,
@@ -49,8 +53,9 @@ class ExperimentAnalyser:
         data = self._data
         metrics = [*data.success_metric, *data.learning_metrics] if metrics is None else metrics
         treatment = data.treatment
-        n_groups = data.n_groups
-        groups = data.groups
+        groups = sort(data[data.treatment].unique())
+        n_groups = len(groups)
+
 
         if parametric == 'permute':
             if n_groups > 2:
@@ -70,7 +75,7 @@ class ExperimentAnalyser:
                 method=method,
                 rounds=rounds,
                 seed=seed
-            )
+                )
 
         elif n_groups > 2:
 
@@ -84,7 +89,7 @@ class ExperimentAnalyser:
                 alternative=alternative,
                 paired=paired,
                 groups=groups
-            )
+                )
 
         elif n_groups == 2:
 
@@ -97,12 +102,11 @@ class ExperimentAnalyser:
                 padjust=padjust,
                 alternative=alternative,
                 paired=paired
-            )
+                )
 
         calculator.run()
 
         self._log['analyses'] = calculator.results
-
 
 
 class BaseAnalyser:
@@ -144,7 +148,7 @@ class BaseAnalyser:
                 dv=metric,
                 group=self.treatment,
                 method='levene'
-            )
+                )
 
             equal_var = check_homoskedasticity.loc['levene', 'equal_var']
 
@@ -165,11 +169,12 @@ class SingleComparison(BaseAnalyser):
             parametric=self.parametric,
             effsize='cohen',  # TODO effect size should be set according to metric type: continuous/binary
             correction=equal_var if equal_var else 'auto'
-        )
+            )
 
         res = _customise_res_table(res)
 
-        note = f'Info: Welch\'s tests is applied automatically if metric variance across the experiment variants differs.'
+        note = f'Info: Welch\'s tests is applied automatically if metric variance across the experiment variants ' \
+               f'differs.'
 
         pretty_results(res, title=metric, subtitle='T-tests:', note=note)
 
@@ -178,15 +183,12 @@ class SingleComparison(BaseAnalyser):
 
         self.results[metric]['t-tests'] = res.to_dict()
 
-
     def run(self):
 
         self._check_homoskedasticity()
 
         for metric, equal_var in self.equal_var_dict.items():
-
             self._run_ttest(metric, equal_var)
-
 
 
 class MultipleComparison(SingleComparison):
@@ -199,12 +201,12 @@ class MultipleComparison(SingleComparison):
             True: {
                 True: pg.anova,
                 False: pg.welch_anova
-            },
+                },
             False: {
                 True: pg.kruskal,
                 False: pg.kruskal
+                }
             }
-        }
 
         anova = method[self.parametric][equal_var]
 
@@ -213,7 +215,7 @@ class MultipleComparison(SingleComparison):
             dv=metric,
             between=self.treatment,
             detailed=True,
-        )
+            )
 
         res = _customise_res_table(res)
 
@@ -224,13 +226,13 @@ class MultipleComparison(SingleComparison):
 
         if res.loc[0, 'p-value'] <= self.alpha:
             note = f'Info: the treatment has an effect on {metric}. ' \
-                         'It is warranted to examine the contrasts between groups in post-hoc.'
+                   'It is warranted to examine the contrasts between groups in post-hoc.'
 
             note = strcol(note, 'okgreen')
 
         elif res.loc[0, 'p-value'] > self.alpha:
             note = f'Info: (none of) the treatment(s) has any effect on {metric}. ' \
-                         'Relying on the post-hoc tests may lead to false positive findings (type-I error)'
+                   'Relying on the post-hoc tests may lead to false positive findings (type-I error)'
 
             note = strcol(note, 'fail')
         else:
@@ -238,15 +240,13 @@ class MultipleComparison(SingleComparison):
 
         pretty_results(res, title=metric, subtitle='ANOVA:', note=note)
 
-
-
     def _run_posthoc(self, metric, equal_var):
 
         # True if variances across groups are equal
         method = {
             True: pg.pairwise_tukey,
             False: pg.pairwise_gameshowell
-        }
+            }
 
         posthoc = method[equal_var]
 
@@ -255,7 +255,7 @@ class MultipleComparison(SingleComparison):
             dv=metric,
             between=self.treatment,
             effsize='cohen'  # TODO effect size should be set according to metric type: continuous/binary
-        )
+            )
 
         res = _customise_res_table(res)
 
@@ -270,42 +270,40 @@ class MultipleComparison(SingleComparison):
 
         pretty_results(res, title=None, subtitle=f'Post-hoc ({test}):', note=note)
 
-
-
     def run(self):
 
         self._check_homoskedasticity()
 
         for metric, equal_var in self.equal_var_dict.items():
-
             self._run_anova(metric, equal_var)
 
             self._run_posthoc(metric, equal_var)
-
 
 
 class PermutationComparison(BaseAnalyser):
     def __init__(
             self, data, metrics, treatment, alternative, padjust, parametric, paired, alpha, groups,
             func, method, rounds, seed
-    ):
+            ):
         BaseAnalyser.__init__(self, data, metrics, treatment, alternative, padjust, parametric, paired, alpha, groups)
 
         if func is None:
-            print('Permuting for mean difference by default. Use a custom function in arg func for median and quantiles.')
+            print(
+                'Permuting for mean difference by default. Use a custom function in arg func for median and quantiles.')
             if alternative == 'two-sided':
                 def func(a, b):
                     a_stat = a.mean()
                     b_stat = b.mean()
                     diff = abs(a_stat - b_stat)
-                    return (a_stat, b_stat, diff)
+                    return a_stat, b_stat, diff
+
                 self.func = func
             elif alternative == 'greater':
                 def func(a, b):
                     a_stat = a.mean()
                     b_stat = b.mean()
                     diff = a_stat - b_stat
-                    return (a_stat, b_stat, diff)
+                    return a_stat, b_stat, diff
 
                 self.func = func
             elif alternative == 'smaller':
@@ -313,7 +311,7 @@ class PermutationComparison(BaseAnalyser):
                     a_stat = a.mean()
                     b_stat = b.mean()
                     diff = abs(b_stat - a_stat)
-                    return (a_stat, b_stat, diff)
+                    return a_stat, b_stat, diff
 
                 self.func = func
 
@@ -357,7 +355,7 @@ class PermutationComparison(BaseAnalyser):
             'diff': [observed_delta],
             'permutations': [self.rounds],
             'p-value': [p]
-        })
+            })
 
         if metric not in self.results:
             self.results[metric] = {}
@@ -374,8 +372,4 @@ class PermutationComparison(BaseAnalyser):
         elif not self.paired:
 
             for metric in self.metrics:
-
                 self._unpaired_perm(metric)
-
-
-

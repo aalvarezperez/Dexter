@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 df = pd.read_csv('/Users/aalvarezperez/Documents/eBay/Horizon/projects/Dexter/dummy_df.csv')
 df.drop(columns=['Unnamed: 0'], inplace=True)
-df.rename({'treatment': 'group'}, axis=1, inplace=True)
+df.rename({'treatment': 'group'}, axis=1, inplace=True)  # rename, as 'treatment' is a forbidden column name.
 
 exp_df = ExperimentDataFrame(
     dataframe=df,
@@ -26,44 +26,50 @@ exp = Experiment(
     )
 
 
-# ################################
-# ### read out experiment ########
-# ################################
-#
+
+################################
+### read out experiment ########
+################################
+
 exp.read_out(exp_df)
 
 # exp.describe_data(by='revenue')
-#
-# ################################
-# ### check assumptions ##########
-# ################################
-#
-# exp.assumptions.check_groups_balance()
-#
-# exp.assumptions.check_crossover()
-#
-# exp.assumptions.check_outliers(
-#     metrics=['vips', 'leads'],
-#     is_outlier=exp.data.leads > 1,
-#     func=[np.mean, np.median]
-#     )
-#
-# ################################
-# ###  fix assumptions  ##########
-# ################################
-#
-# exp.assumptions.handle_crossover()
-#
-# exp.assumptions.handle_outliers(method='trim', is_outlier=exp.data.leads > 1, metrics=['leads', 'vips'])
-#
-# ################################
-# ###  analyze experiment  #######
-# ################################
-#
-# exp.analyser.transform_metrics_log(['leads', 'vips'], offset=0)
-#
+
+################################
+### check assumptions ##########
+################################
+
+exp.assumptions.check_groups_balance()
+
+exp.assumptions.check_crossover()
+
+
+exp.assumptions.check_outliers(
+    metrics=['vips', 'leads'],
+    is_outlier=exp.data.leads > 1,
+    func=[np.mean, np.median]
+    )
+
+
+################################
+###  fix assumptions  ##########
+################################
+
+exp.assumptions.handle_crossover()
+
+exp.assumptions.handle_outliers(method='trim', is_outlier=exp.data.leads > 1, metrics=['leads', 'vips'])
+
+
+################################
+###  analyze experiment  #######
+################################
+
+exp.analyser.transform_metrics_log(['leads', 'vips'], offset=0)
+
 # exp.analyser.compare(parametric=False, func=None)
-#
-# exp.visualiser.plot_conditional(y='revenue', x='leads', group='treatment')
-# plt.show()
+
+# exp.visualiser.plot_conditional(y='revenue', x='leads', group='group')
+exp.visualiser.plot_assumption('outliers')
+
+plt.show()
 

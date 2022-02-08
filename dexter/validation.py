@@ -37,7 +37,7 @@ class _DataFrame(_BaseValidator):
             raise ValueError(f'dataframe should be of type Pandas DataFrame, '
                              f'but got {type(value).__name__} instead.')
         if value.shape[0] == 0:
-            raise ValueError('data is empty')
+            raise ValueError('experiment_df is empty')
 
 
 class _ExperimentDataFrame(_BaseValidator):

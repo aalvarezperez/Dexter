@@ -93,7 +93,7 @@ class Experiment:
         self._data = experiment_df
 
         if self._data is not None:
-            self.assumptions = ExperimentChecker(data=self._data)
+            self.assumptions = ExperimentChecker(self)
             self.analyser = ExperimentAnalyser(data=self._data)
             self.visualiser = ExperimentVisualiser(self)
         else:
@@ -120,7 +120,7 @@ class Experiment:
 
     def read_out(self, data: ExperimentDataFrame):
         self._data = data
-        self.assumptions = ExperimentChecker(data=self._data)
+        self.assumptions = ExperimentChecker(self)
         self.analyser = ExperimentAnalyser(data=self._data)
         self.visualiser = ExperimentVisualiser(self)
         print(strcol('Info: experiment dataframe has been read.', 'okgreen'))

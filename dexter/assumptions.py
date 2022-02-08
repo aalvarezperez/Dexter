@@ -13,9 +13,9 @@ def print_status_message(status_dict, exclude_keys=[]):
 
 
 class ExperimentChecker:
-    def __init__(self, data):
+    def __init__(self, experiment):
 
-        self._data = data
+        self._experiment = experiment
         self._crossover_mask = None
         self._log = {
             'group_balance': {
@@ -69,25 +69,19 @@ class ExperimentChecker:
         return self._log
 
     def check_groups_balance(self):
-
-        data = self._data
+        experiment = self._experiment
+        data = experiment.data
         treatment = data.treatment
-        groups = sort(data[data.treatment].unique())
         expected_proportions = data.expected_proportions
-
-        if len(expected_proportions) != data[treatment].nunique():
-            raise ValueError('Provide a proportion for each group available in the treatment column.'
-                             'The sum of the input should be 1.')
-
         n_treatment = data[treatment].value_counts().sort_index()
         n_total = data.shape[0]
         observed_prop = round(n_treatment / n_total, 3).tolist()
         test_res = check_multiple_proportion(n_total, n_treatment, expected_proportions)
-        differences: list[ndarray | Any] = [round(e - o, 3) for e, o in zip(expected_proportions, observed_prop)]
+        differences = [round(e - o, 3) for e, o in zip(expected_proportions, observed_prop)]
 
         self._log['group_balance']['status']['checked'] = True
         self._log['group_balance']['status']['passed'] = test_res[1] > .05
-        self._log['group_balance']['diagnostics']['groups'] = groups
+        self._log['group_balance']['diagnostics']['groups'] = experiment.groups
         self._log['group_balance']['diagnostics']['observed prop'] = observed_prop
         self._log['group_balance']['diagnostics']['expected prop'] = expected_proportions
         self._log['group_balance']['diagnostics']['differences'] = differences

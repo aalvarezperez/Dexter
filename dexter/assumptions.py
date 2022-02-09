@@ -188,7 +188,7 @@ class ExperimentChecker:
 
         print(f'{affected} units were removed from the working dataset.')
 
-        self._data.data = self._data.loc[~self._crossover_mask]
+        self._experiment.data.data = self._experiment.data.loc[~self._crossover_mask]
 
         self._log['crossover']['status']['handled'] = True
 

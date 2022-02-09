@@ -105,6 +105,12 @@ class Experiment:
     def data(self):
         return self._data
 
+    @data.setter
+    def data(self, value: ExperimentDataFrame):
+        if not isinstance(value, ExperimentDataFrame):
+            raise ValueError('Data should be of Dexter ExperimentDataFrame type.')
+        self._data = value
+
     @property
     def groups(self):
         data = self._data

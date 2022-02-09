@@ -193,20 +193,24 @@ class ExperimentChecker:
         self._log['crossover']['status']['handled'] = True
 
     def handle_outliers(self, metrics, method, is_outlier=None, func=None):
+        experiment = self._experiment
+
+        _default_metrics = [*experiment.data.success_metric, *experiment.data.learning_metrics]
+        _default_func = mean
+
+        metrics = _default_metrics if metrics is None else metrics
+        func = _default_func if func is None else func
 
         if is_outlier is None and self._log['outliers']['status']['checked'] is False:
             raise Exception('Provide a boolean mask that identifies outliers.')
 
         if self._log['outliers']['status']['checked'] is False:
-            func = mean if func is None else func
-            metrics = [*self._data.success_metric, *self._data.learning_metrics] if metrics is None else metrics
             self.check_outliers(is_outlier=is_outlier, metrics=metrics, func=func)
 
         print('• Handling outliers...')
 
         if metrics is None:
             print(indent('All success and learning metrics are affected by default. See the "metrics" argument.'))
-            metrics = [*self._data.success_metric, *self._data.learning_metrics]
 
         # choose a method to remove outliers
         method_dict = {
@@ -215,7 +219,8 @@ class ExperimentChecker:
             }
 
         outlier_fun = method_dict[method]
-        self._data.data = outlier_fun(dataframe=self._data, outlier_mask=is_outlier, metrics=metrics)
+
+        experiment.data.data = outlier_fun(dataframe=self._experiment.data, outlier_mask=is_outlier, metrics=metrics)
 
         total_affected = is_outlier.sum()
         percent_affected = is_outlier.mean()

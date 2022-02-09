@@ -30,6 +30,7 @@ class ExperimentDataFrame:
             expected_proportions: list[float],
             dataframe: pandas.DataFrame
             ):
+
         self.data = dataframe
         self.success_metric = success_metric
         self.health_metrics = health_metric

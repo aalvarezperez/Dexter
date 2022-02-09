@@ -51,12 +51,11 @@ class ExperimentAnalyser:
                 seed=random.randint(1, 10000)
                 ):
 
-        data = self._data
-        metrics = [*data.success_metric, *data.learning_metrics] if metrics is None else metrics
+        data = self._experiment.data
+        metrics = _default_metrics(self._experiment) if metrics is None else metrics
         treatment = data.treatment
         groups = sort(data[data.treatment].unique())
         n_groups = len(groups)
-
 
         if parametric == 'permute':
             if n_groups > 2:
@@ -111,7 +110,6 @@ class ExperimentAnalyser:
 
 
 class BaseAnalyser:
-
     def __init__(self, data, metrics, treatment, alternative, padjust, parametric, paired, alpha, groups=None):
 
         if alternative not in ('two-sided', 'greater', 'smaller'):
@@ -196,9 +194,9 @@ class MultipleComparison(SingleComparison):
 
     def _run_anova(self, metric, equal_var):
 
-        # outer dict: parametric
-        # inner dict: equal variance
+
         method = {
+            # outer dict: parametric | inner dict: equal variance
             True: {
                 True: pg.anova,
                 False: pg.welch_anova

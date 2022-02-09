@@ -117,9 +117,10 @@ def _customise_res_table(res):
         {old: new for (old, new) in col_name_dict.items()},
         axis=1,
         inplace=True
-    )
+        )
 
     return res
 
 def _default_metrics(experiment):
+    print(experiment.data.success_metric, experiment.data.health_metrics)
     return [*experiment.data.success_metric, *experiment.data.health_metrics]

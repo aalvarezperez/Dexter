@@ -62,6 +62,11 @@ class _Metric(_ColumnIdentifier):
     def __init__(self, forbidden):
         _ColumnIdentifier.__init__(self, forbidden)
 
+    def __set__(self, obj, value):
+        self.validate(value)
+        value = [value] if not isinstance(value, list) else value
+        setattr(obj, self.private_name, value)
+
     def validate(self, value):
         _ColumnIdentifier.validate(self, value)
 

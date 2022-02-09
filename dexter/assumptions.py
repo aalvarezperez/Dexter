@@ -5,6 +5,7 @@ from dexter.utils import indent, print_nested_dict
 from tabulate import tabulate
 from pandas import DataFrame, concat
 from itertools import product
+from typing import Callable
 
 
 def print_status_message(status_dict, exclude_keys=[]):
@@ -71,6 +72,7 @@ class ExperimentChecker:
     def check_groups_balance(self):
         experiment = self._experiment
         data = experiment.data
+
         treatment = data.treatment
         expected_proportions = data.expected_proportions
         n_treatment = data[treatment].value_counts().sort_index()
@@ -91,14 +93,15 @@ class ExperimentChecker:
         print_status_message(self._log.get('group_balance'))
 
     def check_crossover(self):
+        experiment = self._experiment
+        experiment_unit = experiment.data.experiment_unit
+        treatment = experiment.data.treatment
 
-        data = self._data
-        experiment_unit = data.experiment_unit
-        treatment = data.treatment
-
+        data = experiment.data[[experiment_unit, treatment]]  # lighter df than full dataset
         user_treatment_df = data.drop_duplicates(subset=[experiment_unit, treatment])
+
         user_freq_series = user_treatment_df[experiment_unit].value_counts()
-        crossed_over = user_freq_series > 1
+        crossed_over = user_freq_series > 1  # unique cases of cross-over
 
         absolute = crossed_over.sum()
         percent = '{}%'.format(round(crossed_over.mean() * 100))
@@ -111,11 +114,11 @@ class ExperimentChecker:
 
         print_status_message(self._log.get('crossover'))
 
-    def check_outliers(self, is_outlier, metrics, func):
+    def check_outliers(self, is_outlier, metrics, func: Callable):
+
+        data = self._experiment.data
 
         func = [func] if not isinstance(func, list) else func
-
-        data = self._data
 
         aggr_df = data[metrics].groupby(is_outlier).agg(func)
 

@@ -94,7 +94,7 @@ class Experiment:
 
         if self._data is not None:
             self.assumptions = ExperimentChecker(self)
-            self.analyser = ExperimentAnalyser(data=self._data)
+            self.analyser = ExperimentAnalyser(self)
             self.visualiser = ExperimentVisualiser(self)
         else:
             print(strcol('Info: you initialised the experiment, but there is no experiment_df to analyse yet.'
@@ -127,7 +127,7 @@ class Experiment:
     def read_out(self, data: ExperimentDataFrame):
         self._data = data
         self.assumptions = ExperimentChecker(self)
-        self.analyser = ExperimentAnalyser(data=self._data)
+        self.analyser = ExperimentAnalyser(self)
         self.visualiser = ExperimentVisualiser(self)
         print(strcol('Info: experiment dataframe has been read.', 'okgreen'))
 

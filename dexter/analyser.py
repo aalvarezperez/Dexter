@@ -5,12 +5,12 @@ import random
 
 from numpy import sort
 
-from dexter.utils import pretty_results, strcol, _customise_res_table
+from dexter.utils import pretty_results, strcol, _customise_res_table, _default_metrics
 
 
 class ExperimentAnalyser:
-    def __init__(self, data):
-        self._data = data
+    def __init__(self, experiment):
+        self._experiment = experiment
         self._log = {
             'transformations': {},
             'analyses': {}
@@ -21,20 +21,21 @@ class ExperimentAnalyser:
         return self._log[part] if part is not None else self._log
 
     def transform_metrics(self, metrics, func):
-
         if not callable(func):
             raise ValueError('transform_func has to be a callable that takes a single argument.')
 
+        metrics = _default_metrics(self._experiment) if metrics is None else metrics
+
         for metric in metrics:
-            self._data.data[metric] = func(self._data[metric])
-            self._log['transformations'][metric] = str(func)
+            self._experiment.data[metric] = func(self._experiment.data[metric])
+            # TODO: include arguments and their value via decorators
+            self._log['transformations'][metric] = f'{str(func.__name__)}'
 
         print(f'Info: the following metrics were transformed with {func.__name__}: {", ".join(x for x in metrics)}.')
 
     def transform_metrics_log(self, metrics, offset=0):
         def log(x):
             return np.log(x + offset)
-
         self.transform_metrics(metrics, func=log)
 
     def compare(self,

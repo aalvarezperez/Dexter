@@ -120,3 +120,6 @@ def _customise_res_table(res):
     )
 
     return res
+
+def _default_metrics(experiment):
+    return [*experiment.data.success_metric, *experiment.data.health_metrics]

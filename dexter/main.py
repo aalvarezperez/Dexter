@@ -41,22 +41,21 @@ exp.read_out(exp_df)
 
 exp.assumptions.check_groups_balance()
 
-# exp.assumptions.check_crossover()
-#
-#
-# exp.assumptions.check_outliers(
-#     metrics=['vips', 'leads'],
-#     is_outlier=exp.data.leads > 1,
-#     func=[np.mean, np.median]
-#     )
-#
-#
-# ################################
-# ###  fix assumptions  ##########
-# ################################
-#
+exp.assumptions.check_crossover()
+
+
+exp.assumptions.check_outliers(
+    metrics=['vips', 'leads'],
+    is_outlier=exp.data.leads > 1,
+    func=[np.mean, np.median]
+    )
+
+################################
+###  fix assumptions  ##########
+################################
+
 # exp.assumptions.handle_crossover()
-#
+
 # exp.assumptions.handle_outliers(method='trim', is_outlier=exp.data.leads > 1, metrics=['leads', 'vips'])
 #
 #
@@ -64,8 +63,9 @@ exp.assumptions.check_groups_balance()
 # ###  analyze experiment  #######
 # ################################
 #
-# exp.analyser.transform_metrics_log(['leads', 'vips'], offset=0)
-#
+exp.analyser.transform_metrics_log(['leads', 'vips'])
+
+print(exp.analyser.get_log('transformations'))
 # # exp.analyser.compare(parametric=False, func=None)
 #
 # # exp.visualiser.plot_conditional(y='revenue', x='leads', group='group')

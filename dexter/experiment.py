@@ -98,9 +98,8 @@ class Experiment:
             self.analyser = ExperimentAnalyser(self)
             self.visualiser = ExperimentVisualiser(self)
         else:
-            print(strcol('Info: you initialised the experiment, but there is no experiment_df to analyse yet.'
-                         ' See the .read_out() method.', 'warning')
-                  )
+            pinfo('you initialised the experiment, but there is no data to analyse yet. '
+                  'See the .read_out() method.', color='warning')
 
     @property
     def data(self):
@@ -130,7 +129,7 @@ class Experiment:
         self.assumptions = ExperimentChecker(self)
         self.analyser = ExperimentAnalyser(self)
         self.visualiser = ExperimentVisualiser(self)
-        print(strcol('Info: experiment dataframe has been read.', 'okgreen'))
+        pinfo('experiment dataframe has been read.', color='okgreen')
 
     def describe_data(self, by: str = None, q: int = 3):
 

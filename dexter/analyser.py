@@ -5,7 +5,7 @@ import random
 
 from numpy import sort
 
-from dexter.utils import pretty_results, strcol, _customise_res_table, _default_metrics
+from dexter.utils import _customise_res_table, _default_metrics, pinfo, function_details, pretty_results
 
 
 class ExperimentAnalyser:
@@ -26,15 +26,21 @@ class ExperimentAnalyser:
 
         metrics = _default_metrics(self._experiment) if metrics is None else metrics
 
-        for metric in metrics:
-            self._experiment.data[metric] = func(self._experiment.data[metric])
-            # TODO: include arguments and their value via decorators
-            self._log['transformations'][metric] = f'{str(func.__name__)}'
+        func = function_details(func)
 
-        print(f'Info: the following metrics were transformed with {func.__name__}: {", ".join(x for x in metrics)}.')
+        for metric in metrics:
+            self._experiment.data[metric], signature, func_name = func(self._experiment.data[metric])
+            self._log['transformations'][metric] = f'{func_name}'
+            if len(signature) > 0:
+                self._log['transformations'][metric] += f' with {signature}'
+
+        pinfo(
+            f'the following metrics were transformed with {func.__name__}: {", ".join(x for x in metrics)}.',
+            color='warning'
+            )
 
     def transform_metrics_log(self, metrics, offset=0):
-        def log(x):
+        def log(x, offset=offset):
             return np.log(x + offset)
         self.transform_metrics(metrics, func=log)
 
@@ -194,7 +200,6 @@ class MultipleComparison(SingleComparison):
 
     def _run_anova(self, metric, equal_var):
 
-
         method = {
             # outer dict: parametric | inner dict: equal variance
             True: {
@@ -224,16 +229,16 @@ class MultipleComparison(SingleComparison):
         self.results[metric]['anova'] = res.to_dict()
 
         if res.loc[0, 'p-value'] <= self.alpha:
-            note = f'Info: the treatment has an effect on {metric}. ' \
+            note = f'the treatment has an effect on {metric}. ' \
                    'It is warranted to examine the contrasts between groups in post-hoc.'
 
-            note = strcol(note, 'okgreen')
+            note = pinfo(note, 'okgreen')
 
         elif res.loc[0, 'p-value'] > self.alpha:
-            note = f'Info: (none of) the treatment(s) has any effect on {metric}. ' \
+            note = f'(none of) the treatment(s) has any effect on {metric}. ' \
                    'Relying on the post-hoc tests may lead to false positive findings (type-I error)'
 
-            note = strcol(note, 'fail')
+            note = pinfo(note, 'okgreen')
         else:
             note = None
 

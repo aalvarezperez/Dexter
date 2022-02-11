@@ -25,8 +25,6 @@ exp = Experiment(
     roll_out_percent=.1
     )
 
-
-
 ################################
 ### read out experiment ########
 ################################
@@ -42,7 +40,6 @@ exp.read_out(exp_df)
 exp.assumptions.check_groups_balance()
 
 exp.assumptions.check_crossover()
-
 
 exp.assumptions.check_outliers(
     metrics=['vips', 'leads'],
@@ -63,11 +60,11 @@ exp.assumptions.check_outliers(
 # ###  analyze experiment  #######
 # ################################
 #
-exp.analyser.transform_metrics_log(['leads', 'vips'])
+exp.analyser.transform_metrics_log(['leads', 'vips'], offset=1)
 
-print(exp.analyser.get_log('transformations'))
-# # exp.analyser.compare(parametric=False, func=None)
-#
+
+exp.analyser.compare(parametric=False, func=None)
+
 # # exp.visualiser.plot_conditional(y='revenue', x='leads', group='group')
 # exp.visualiser.plot_assumption('outliers')
 #

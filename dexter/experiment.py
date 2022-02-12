@@ -124,6 +124,10 @@ class Experiment:
     def sample_size(self):
         return self.data.shape[0]
 
+    @property
+    def mde(self):
+        pass
+
     def read_out(self, data: ExperimentDataFrame):
         self._data = data
         self.assumptions = ExperimentChecker(self)

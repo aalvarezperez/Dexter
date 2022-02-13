@@ -1,4 +1,4 @@
-from numpy import round, sqrt
+from numpy import round, sqrt, unique
 from scipy.stats import chisquare, t
 
 
@@ -19,36 +19,9 @@ def check_multiple_proportion(n_total, n_treatment, expected_proportion):
     return round(res, 3)
 
 
-def mde_binomial(x, y, alpha=.05, beta=1 - .8, alternative='two-sided', xn=None, yn=None):
+def mde(xn, yn, yvar, xvar, alpha=.05, beta=1 - .8, alternative='two-sided'):
     assert alternative in ['two-sided', 'one-sided']
 
-    ymean = y.mean()
-    xmean = x.mean()
-    yn = y.shape[0] if yn is None else yn
-    xn = x.shape[0] if xn is None else xn
-
-    yvar = ymean * (1 - ymean) / yn
-    xvar = xmean * (1 - xmean) / xn
-    dsd = sqrt(xvar + yvar)
-
-    alpha = alpha / 2 if alternative == 'two-sided' else alpha
-
-    dof = yn + xn - 1
-
-    t_critical = t.ppf(1 - alpha, df=dof)
-    t_beta = t.ppf(1 - beta, df=dof)
-
-    return abs(-t_critical * dsd - t_beta * dsd)
-
-
-def mde_continuous(x, y, alpha=.05, beta=1 - .8, alternative='two-sided', xn=None, yn=None, yvar=None, xvar=None):
-    assert alternative in ['two-sided', 'one-sided']
-
-    yn = y.shape[0] if yn is None else yn
-    xn = x.shape[0] if xn is None else xn
-
-    yvar = y.var() if yvar is None else yvar
-    xvar = x.var() if xvar is None else xvar
     dsd = sqrt(xvar + yvar)
 
     alpha = alpha / 2 if alternative == 'two-sided' else alpha

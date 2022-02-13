@@ -5,7 +5,7 @@ import random
 
 from numpy import sort
 
-from dexter.utils import _customise_res_table, _default_metrics, pinfo, function_details, pretty_results
+from dexter.utils import _customise_res_table, default_metrics, pinfo, function_details, pretty_results
 
 
 class ExperimentAnalyser:
@@ -24,7 +24,7 @@ class ExperimentAnalyser:
         if not callable(func):
             raise ValueError('transform_func has to be a callable that takes a single argument.')
 
-        metrics = _default_metrics(self._experiment) if metrics is None else metrics
+        metrics = default_metrics(self._experiment) if metrics is None else metrics
 
         func = function_details(func)
 
@@ -58,7 +58,7 @@ class ExperimentAnalyser:
                 ):
 
         data = self._experiment.data
-        metrics = _default_metrics(self._experiment) if metrics is None else metrics
+        metrics = default_metrics(self._experiment) if metrics is None else metrics
         treatment = data.treatment
         groups = sort(data[data.treatment].unique())
         n_groups = len(groups)

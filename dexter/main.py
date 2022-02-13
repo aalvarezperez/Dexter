@@ -51,6 +51,8 @@ exp.assumptions.check_outliers(
 ###  fix assumptions  ##########
 ################################
 
+print(exp.mde[0].mde)
+
 # exp.assumptions.handle_crossover()
 
 # exp.assumptions.handle_outliers(method='trim', is_outlier=exp.data.leads > 1, metrics=['leads', 'vips'])
@@ -60,10 +62,10 @@ exp.assumptions.check_outliers(
 # ###  analyze experiment  #######
 # ################################
 #
-exp.analyser.transform_metrics_log(['leads', 'vips'], offset=1)
-
-
-exp.analyser.compare(parametric=False, func=None)
+# exp.analyser.transform_metrics_log(['leads', 'vips'], offset=1)
+#
+#
+# exp.analyser.compare(parametric=False, func=None)
 
 # # exp.visualiser.plot_conditional(y='revenue', x='leads', group='group')
 # exp.visualiser.plot_assumption('outliers')

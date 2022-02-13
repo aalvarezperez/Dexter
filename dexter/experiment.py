@@ -1,10 +1,13 @@
+from collections import namedtuple
+
 import pandas
 from numpy import sort
 
+import dexter.validation as validation
 from dexter.analyser import ExperimentAnalyser
 from dexter.assumptions import ExperimentChecker
+from dexter.stats_func import mde
 from dexter.utils import *
-import dexter.validation as validation
 from dexter.visualisations import ExperimentVisualiser
 
 
@@ -30,7 +33,6 @@ class ExperimentDataFrame:
             expected_proportions: list[float],
             dataframe: pandas.DataFrame
             ):
-
         self.data = dataframe
         self.success_metric = success_metric
         self.health_metrics = health_metric
@@ -126,7 +128,44 @@ class Experiment:
 
     @property
     def mde(self):
-        pass
+        """
+        Minimum detectable effect given observed sample sizes, variances, and provided type I and type II levels.
+
+        Post-hoc power analysis is considered a bad practice.
+        [reference] explain that the power of a test provides no more information once the p-value is known.
+        Therefore, knowing the p-value of a test and still doing a post-hoc power is a circular.
+        And so, post-hoc power analysis may reinforce the mistaken belief that the obtained p-value adheres to the
+        overall set levels of type I error.
+
+        :return:
+        minimum detectable effect: list[tuple(metric, mde)]
+        """
+        data = self.data
+        treatment = data.treatment
+        metrics = default_metrics(self) + data.learning_metrics
+
+        _tmp = data.value_counts(treatment).sort_index()
+        control_idx = 0
+        smallest_n_testgroup_idx = _tmp[1:].argmin() + 1
+
+        count_df = _tmp.iloc[[control_idx, smallest_n_testgroup_idx]].rename('var')
+
+        stats_df = data.groupby(treatment)[metrics].var().transpose()
+
+        stats_df.columns = ['xvar', 'yvar']
+
+        stats_df[['xn', 'yn']] = count_df
+
+        arguments = stats_df.to_dict(orient='records')
+
+        min_detect_effect = namedtuple('mde', ['metric', 'mde'])
+
+        results = []
+        for metric, kwargs in zip(metrics, arguments):
+            metric_value_pair = min_detect_effect(metric, mde(**kwargs))
+            results.append(metric_value_pair)
+
+        return results
 
     def read_out(self, data: ExperimentDataFrame):
         self._data = data

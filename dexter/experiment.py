@@ -73,7 +73,7 @@ class Experiment:
     end = validation._String()
     roll_out_percent = validation._Proportion()
     expected_delta = validation._Number()
-    _data = validation._ExperimentDataFrame()
+    data = validation._ExperimentDataFrame()
 
     def __init__(
             self,
@@ -93,9 +93,9 @@ class Experiment:
         self.end = end
         self.expected_delta = expected_delta
         self.roll_out_percent = roll_out_percent
-        self._data = experiment_df
+        self.data = experiment_df
 
-        if self._data is not None:
+        if self.data is not None:
             self.assumptions = ExperimentChecker(self)
             self.analyser = ExperimentAnalyser(self)
             self.visualiser = ExperimentVisualiser(self)
@@ -103,19 +103,10 @@ class Experiment:
             pinfo('you initialised the experiment, but there is no data to analyse yet. '
                   'See the .read_out() method.', color='warning')
 
-    @property
-    def data(self):
-        return self._data
-
-    @data.setter
-    def data(self, value: ExperimentDataFrame):
-        if not isinstance(value, ExperimentDataFrame):
-            raise ValueError('Data should be of Dexter ExperimentDataFrame type.')
-        self._data = value
 
     @property
     def groups(self):
-        data = self._data
+        data = self.data
         return sort(data[data.treatment].unique())
 
     @property
@@ -168,15 +159,16 @@ class Experiment:
         return results
 
     def read_out(self, data: ExperimentDataFrame):
-        self._data = data
+        self.data = data
         self.assumptions = ExperimentChecker(self)
         self.analyser = ExperimentAnalyser(self)
         self.visualiser = ExperimentVisualiser(self)
         pinfo('experiment dataframe has been read.', color='okgreen')
 
+    #  todo: re-write describe_data() so that it does not make a copy of the original data
     def describe_data(self, by: str = None, q: int = 3):
 
-        df = self._data.data.copy()
+        df = self.data.data.copy()
 
         high_cardinality = df[by].nunique() > 7
 
@@ -198,6 +190,6 @@ class Experiment:
                     frame
                     )
                 mask = df['stratum'] == stratum
-                pretty_results(self._data.loc[mask].describe())
+                pretty_results(self.data.loc[mask].describe())
         else:
-            pretty_results(self._data.describe())
+            pretty_results(self.data.describe())

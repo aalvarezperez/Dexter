@@ -31,7 +31,7 @@ exp = Experiment(
 
 exp.read_out(exp_df)
 
-# exp.describe_data(by='revenue')
+exp.describe_data(by='revenue')
 
 ################################
 ### check assumptions ##########
@@ -53,22 +53,26 @@ exp.assumptions.check_outliers(
 
 print(exp.mde[0].mde)
 
-# exp.assumptions.handle_crossover()
+exp.assumptions.handle_crossover()
 
-# exp.assumptions.handle_outliers(method='trim', is_outlier=exp.data.leads > 1, metrics=['leads', 'vips'])
-#
-#
-# ################################
-# ###  analyze experiment  #######
-# ################################
-#
-# exp.analyser.transform_metrics_log(['leads', 'vips'], offset=1)
-#
-#
-# exp.analyser.compare(parametric=False, func=None)
+exp.assumptions.handle_outliers(method='trim', is_outlier=exp.data.leads > 1, metrics=['leads', 'vips'])
 
-# # exp.visualiser.plot_conditional(y='revenue', x='leads', group='group')
-# exp.visualiser.plot_assumption('outliers')
-#
-# plt.show()
+
+################################
+###  analyze experiment  #######
+################################
+
+exp.analyser.transform_metrics_log(['leads', 'vips'], offset=1)
+
+exp.analyser.compare(parametric=False, func=None)
+
+#################################
+###  visualise experiment  ######
+#################################
+
+exp.visualiser.plot_conditional(y='revenue', x='leads', group='group')
+
+exp.visualiser.plot_assumption('outliers')
+
+plt.show()
 

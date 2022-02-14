@@ -31,4 +31,6 @@ def mde(xn, yn, yvar, xvar, alpha=.05, beta=1 - .8, alternative='two-sided'):
     t_critical = t.ppf(1 - alpha, df=dof)
     t_beta = t.ppf(1 - beta, df=dof)
 
+    print(t_critical, t_beta)
+
     return abs(-t_critical * dsd - t_beta * dsd)

@@ -103,7 +103,6 @@ class Experiment:
             pinfo('you initialised the experiment, but there is no data to analyse yet. '
                   'See the .read_out() method.', color='warning')
 
-
     @property
     def groups(self):
         data = self.data
@@ -117,8 +116,7 @@ class Experiment:
     def sample_size(self):
         return self.data.shape[0]
 
-    @property
-    def mde(self):
+    def mde(self, metrics=None, alpha=.05, beta=1 - .8, alternative='two-sided'):
         """
         Minimum detectable effect given observed sample sizes, variances, and provided type I and type II levels.
 
@@ -131,9 +129,11 @@ class Experiment:
         :return:
         minimum detectable effect: list[tuple(metric, mde)]
         """
+
         data = self.data
         treatment = data.treatment
-        metrics = default_metrics(self) + data.learning_metrics
+        metrics = default_metrics(self) + data.learning_metrics if metrics is None else metrics
+        metrics = [metrics] if not isinstance(metrics, list) else metrics
 
         _tmp = data.value_counts(treatment).sort_index()
         control_idx = 0
@@ -144,7 +144,7 @@ class Experiment:
         def _variance(x):
             if x.nunique() == 2:
                 xmean = x.mean()
-                return xmean*(1-xmean)/len(x)
+                return xmean * (1 - xmean) / len(x)
             else:
                 return x.var()
 
@@ -156,11 +156,11 @@ class Experiment:
 
         arguments = stats_df.to_dict(orient='records')
 
-        min_detect_effect = namedtuple('mde', ['metric', 'mde'])
+        min_det_effect = namedtuple('mde', ['metric', 'mde'])
 
         results = []
         for metric, kwargs in zip(metrics, arguments):
-            metric_value_pair = min_detect_effect(metric, mde(**kwargs))
+            metric_value_pair = min_det_effect(metric, mde(**kwargs, alpha=alpha, beta=beta, alternative=alternative))
             results.append(metric_value_pair)
 
         return results

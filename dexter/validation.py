@@ -52,7 +52,7 @@ class _ColumnIdentifier(_String):
         self.forbidden = forbidden
 
     def validate(self, value):
-        _String.validate(self, value)
+        # _String.validate(self, value)
         if value in self.forbidden:
             raise ValueError('The column identifier cannot be the same as any of the reserved attribute names for the '
                              'ExperimentDataFrame class. Change the column name in the original pandas DataFrame.')

@@ -141,7 +141,14 @@ class Experiment:
 
         count_df = _tmp.iloc[[control_idx, smallest_n_testgroup_idx]].rename('var')
 
-        stats_df = data.groupby(treatment)[metrics].var().transpose()
+        def _variance(x):
+            if x.nunique() == 2:
+                xmean = x.mean()
+                return xmean*(1-xmean)/len(x)
+            else:
+                return x.var()
+
+        stats_df = data.groupby(treatment)[metrics].agg([_variance]).transpose()
 
         stats_df.columns = ['xvar', 'yvar']
 

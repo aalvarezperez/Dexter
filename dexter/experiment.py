@@ -1,13 +1,12 @@
 from collections import namedtuple
 
-import numpy as np
 import pandas
 from numpy import sort, mean
 
 import dexter.validation as validation
 from dexter.analyser import ExperimentAnalyser
 from dexter.assumptions import ExperimentChecker
-from dexter.stats_func import mde, required_n
+from dexter.stats_func import mde, required_n, actual_power
 from dexter.utils import *
 from dexter.visualisations import ExperimentVisualiser
 
@@ -142,14 +141,7 @@ class Experiment:
 
         count_df = _tmp.iloc[[control_idx, smallest_n_testgroup_idx]].rename('var')
 
-        def _variance(x):
-            if x.nunique() == 2:
-                xmean = x.mean()
-                return xmean * (1 - xmean) / len(x)
-            else:
-                return x.var()
-
-        stats_df = data.groupby(treatment)[metrics].agg([_variance]).transpose()
+        stats_df = data.groupby(treatment)[metrics].agg(['var']).transpose()
 
         stats_df.columns = ['xvar', 'yvar']
 
@@ -185,36 +177,62 @@ class Experiment:
         metrics = default_metrics(self) + data.learning_metrics if metrics is None else metrics
         metrics = [metrics] if not isinstance(metrics, list) else metrics
 
-        # _tmp = data.value_counts(treatment).sort_index()
-        # control_idx = 0
-        # smallest_n_testgroup_idx = _tmp[1:].argmin() + 1
-        # count_df = _tmp.iloc[[control_idx, smallest_n_testgroup_idx]].rename('var')
+        stats_df = data.groupby(treatment)[metrics].agg([mean, 'var']).transpose()
 
-        def _variance(x):
-            if x.nunique() == 2:
-                xmean = x.mean()
-                return xmean * (1 - xmean) / len(x)
-            else:
-                return x.var()
-
-        stats_df = data.groupby(treatment)[metrics].agg([mean, _variance]).transpose()
         stats_df = stats_df.unstack()
 
         stats_df.columns = ['xmean', 'xvar', 'ymean', 'yvar']
 
         arguments = stats_df.to_dict(orient='records')
 
-        requiredn = namedtuple('sample_size', ['metric', 'n'])
+        sample_size = namedtuple('sample_size', ['metric', 'n'])
 
         results = []
+
         for metric, kwargs in zip(metrics, arguments):
-            metric_value_pair = requiredn(
+            metric_value_pair = sample_size(
                 metric,
                 np.ceil(required_n(**kwargs, alpha=alpha, beta=beta, alternative=alternative))
                 )
             results.append(metric_value_pair)
 
         return results
+
+    def actual_power(self, metrics=None, alpha=.05, alternative='two-sided'):
+        """
+        Minimum detectable effect given observed sample sizes, variances, and provided type I and type II levels.
+
+        Post-hoc power analysis is considered a bad practice.
+        [reference] explain that the power of a test provides no more information once the p-value is known.
+        Therefore, knowing the p-value of a test and still doing a post-hoc power is a circular.
+        And so, post-hoc power analysis may reinforce the mistaken belief that the obtained p-value adheres to the
+        overall set levels of type I error.
+
+        :return:
+        minimum detectable effect: list[tuple(metric, mde)]
+        """
+
+        data = self.data
+        treatment = data.treatment
+        metrics = default_metrics(self) + data.learning_metrics if metrics is None else metrics
+        metrics = [metrics] if not isinstance(metrics, list) else metrics
+
+        arguments_df = prep_actual_power(data=data, treatment_col=treatment, metrics=metrics)
+
+        arguments_df['power'] = arguments_df.apply(
+            lambda row:
+            actual_power(
+                row.xmean, row.ymean,
+                row.xvar, row.yvar,
+                row.xn, row.yn,
+                alpha=alpha,
+                alternative=alternative
+                ),
+            axis=1
+            )
+
+        return arguments_df
+
 
     def read_out(self, data: ExperimentDataFrame):
         self.data = data

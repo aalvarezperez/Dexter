@@ -1,9 +1,10 @@
 import functools
 import builtins
+import itertools
 
 from tabulate import tabulate
 from pandas.core.frame import DataFrame
-
+import numpy as np
 
 def strcol(string, modification=None):
     if modification is None:
@@ -148,3 +149,39 @@ def pinfo(*values, color: str = None, do_print=True, **kwargs):
     if not do_print:
         return values
     builtins.print(*values, **kwargs)
+
+
+def expand_grid(data_dict):
+    rows = itertools.product(*data_dict.values())
+    return DataFrame.from_records(rows, columns=data_dict.keys())
+
+
+def prep_actual_power(data: DataFrame, treatment_col: str, metrics: list) -> DataFrame:
+    stats_df = data.groupby(treatment_col)[metrics].agg(
+        {
+            'mean',
+            'var',
+            'count'
+            }
+        ) \
+        .rename(columns={'count': 'n'}) \
+        .transpose() \
+        .reset_index()
+
+    stats_df = stats_df.rename(columns={'level_0': 'metric', 'level_1': 'aggr'})
+
+    df_melt = stats_df.melt(id_vars=['metric', 'aggr']).set_index(['metric', 'aggr']).reset_index()
+    df_melt = df_melt.pivot_table(index=['metric', 'group'], columns=['aggr'])
+    df_melt = df_melt.droplevel(0, 1)
+    df_melt['group'] = df_melt.index.get_level_values('group')
+    df_melt = df_melt.droplevel('group')
+    df_joined = df_melt.add_prefix('x').join(df_melt.add_prefix('y'))
+    df_joined = df_joined.loc[df_joined.xgroup != df_joined.ygroup]
+
+    df_joined = df_joined.set_index([df_joined.index, 'xgroup', 'ygroup']) \
+        .rename(index={'xgroup': 'A', 'ygroup': 'B'})
+    df_joined['delta'] = df_joined['xmean'] - df_joined['ymean']
+    df_joined['abs_delta'] = np.abs(df_joined['delta'])
+    df_final = df_joined.drop_duplicates(subset=['abs_delta']).drop(columns=['abs_delta'])
+
+    return df_final
